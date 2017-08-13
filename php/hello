@@ -1,0 +1,46 @@
+#!/usr/local/bin/php
+<?php
+echo <<<EOT
+		 -----------------
+		|       hello     |
+		|       world     |
+		 -----------------
+EOT;
+echo "\n";
+echo "connecting to the server\n";
+
+$port = 9501;
+$address = "127.0.0.1";
+
+$sock = stream_socket_client("tcp://$address:$port"); 
+
+echo "connection established\n";
+ 
+$uin = fopen("php://stdin", "r");
+$conOpen = true;    
+while($conOpen) {    
+ 
+    $r = array($sock, $uin);
+    $w = NULL;
+    $e = NULL;
+    $t = NULL;
+    if(0 < stream_select($r, $w, $e, $t)) {
+       foreach($r as $i => $fd) {
+          if($fd == $uin) {
+               $text = fgets($uin);
+               echo "me: ";
+               fwrite($sock, $text);
+           } else {
+               $text = fgets($sock);
+               if ($text == "") {
+                   echo "Connection closed by peer\n";
+                   $conOpen = false;
+                   fclose($sock);
+                   break;
+               }
+               echo "\rServer says: " .$text;
+               echo "me: ";
+           }
+       }
+   }
+} 

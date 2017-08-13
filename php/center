@@ -1,0 +1,41 @@
+#!/usr/local/bin/php
+<?php
+$port = 9501;
+$address = "127.0.0.1";
+$ssock;
+$csock;
+$uin;
+$ssock = stream_socket_server("tcp://$address:$port");
+
+echo "Waiting for client...\n";
+$csock = stream_socket_accept($ssock);
+echo "Connection established\n";
+$uin = fopen("php://stdin", "r");
+
+$conOpen = true;    
+while($conOpen) {    
+ 
+    $r = array($csock, $uin);
+    $w = NULL;
+    $e = NULL;
+    $t = NULL;
+    if(0 < stream_select($r, $w, $e, $t)) {
+       foreach($r as $i => $fd) {
+          if($fd == $uin) {
+               $text = fgets($uin);
+               echo "me: ";
+               fwrite($csock, $text);
+           } else {
+               $text = fgets($csock);
+               if($text == "") {
+                   echo "Connection closed by peer\n";
+                   $conOpen = false;
+                   fclose($csock);
+                   break;
+               }
+               echo "\rClient says: " .$text;
+               echo "me: ";
+           }
+       }
+   }
+} 

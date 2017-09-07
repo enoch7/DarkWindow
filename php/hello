@@ -13,7 +13,10 @@ $port = 9501;
 $address = "127.0.0.1";
 
 $sock = stream_socket_client("tcp://$address:$port"); 
-
+if (!$sock) {
+    echo "connection error\n";
+    exit(1);
+}
 echo "connection established\n";
  
 $uin = fopen("php://stdin", "r");

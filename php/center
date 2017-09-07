@@ -8,7 +8,14 @@ $uin;
 $ssock = stream_socket_server("tcp://$address:$port");
 
 echo "Waiting for client...\n";
-$csock = stream_socket_accept($ssock);
+
+while ($csock = stream_socket_accept($ssock)) {
+  echo "new client".$csock,"\n";
+
+
+}
+
+/*
 echo "Connection established\n";
 $uin = fopen("php://stdin", "r");
 
@@ -39,3 +46,4 @@ while($conOpen) {
        }
    }
 } 
+*/

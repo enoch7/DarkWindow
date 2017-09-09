@@ -1,5 +1,10 @@
 #!/usr/local/bin/php
 <?php
+$name = $argv[1];
+if (!$name) {
+  die("请告诉我你是谁");
+}
+
 echo <<<EOT
 		 -----------------
 		|       hello     |
@@ -12,18 +17,19 @@ echo "connecting to the server\n";
 $port = 9501;
 $address = "127.0.0.1";
 
-$sock = stream_socket_client("tcp://$address:$port"); 
-if (!$sock) {
+$socket = stream_socket_client("tcp://$address:$port"); 
+if (!$socket) {
     echo "connection error\n";
     exit(1);
 }
+
 echo "connection established\n";
- 
+
 $uin = fopen("php://stdin", "r");
 $conOpen = true;    
 while($conOpen) {    
  
-    $r = array($sock, $uin);
+    $r = array($socket, $uin);
     $w = NULL;
     $e = NULL;
     $t = NULL;
@@ -32,13 +38,13 @@ while($conOpen) {
           if($fd == $uin) {
                $text = fgets($uin);
                echo "me: ";
-               fwrite($sock, $text);
+               fwrite($socket, $name.':'.$text);
            } else {
-               $text = fgets($sock);
+               $text = fgets($socket);
                if ($text == "") {
                    echo "Connection closed by peer\n";
                    $conOpen = false;
-                   fclose($sock);
+                   fclose($socket);
                    break;
                }
                echo "\rServer says: " .$text;

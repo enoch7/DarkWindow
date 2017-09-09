@@ -24,7 +24,7 @@ if (!$socket) {
 }
 
 echo "connection established\n";
-
+echo "me: ";
 $uin = fopen("php://stdin", "r");
 $conOpen = true;    
 while($conOpen) {    
@@ -42,12 +42,12 @@ while($conOpen) {
            } else {
                $text = fgets($socket);
                if ($text == "") {
-                   echo "Connection closed by peer\n";
+                   echo "Connection closed\n";
                    $conOpen = false;
                    fclose($socket);
-                   break;
+                   exit(0);
                }
-               echo "\rServer says: " .$text;
+               echo "\r" . $text;
                echo "me: ";
            }
        }

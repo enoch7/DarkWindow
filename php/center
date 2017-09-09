@@ -1,54 +1,79 @@
 #!/usr/local/bin/php
 <?php
-$port = 9501;
-$address = "127.0.0.1";
-$ssock;
-$csock;
-$uin;
-$redisMain = new Redis();
-$redisMain->connect('127.0.0.1',6379);
+class MyThread extends Thread
+{	
+	public $serverSock;
+	public $pidQueue;
+	public $msgQueue;
+	public $clients = [];
 
-$pids = [];
-$ssock = stream_socket_server("tcp://$address:$port");
-echo "Waiting for client...\n";
-while ($csock = stream_socket_accept($ssock,300)) {
-  echo "new client".$csock,"\n";
-  $redisMain->lpush('conn',$csock);
+	public function __construct($socket,$pidQueue,$msgQueue)
+	{
+		$this->serverSock = $socket;
+		$this->pidQueue = $pidQueue;
+		$this->msgQueue = $msgQueue;
+	}
 
-  $pid = pcntl_fork();
-  if ($pid == -1) {
-    die('子进程创建失败');
-  } else if ($pid) {
-    $pids[] = $pid;
-  } else {
-    $redis = new  Redis();
-    $redis->connect('127.0.0.1',6379);
+	public function run()
+	{
+		while ($csock = @stream_socket_accept($this->serverSock,300)) {			
+			$pid = pcntl_fork();
+			if ($pid == 0) {
+				$opening = true;
+    				while($opening) {
+        				$r = array($csock);
+			        	$w = $e = $t =  NULL;
+			        	if(0 < @stream_select($r, $w, $e, $t)) {
+			          	foreach($r as $i => $fd) {
+				              	if($fd == $csock) {
+				              		$pid = posix_getpid();
+				                  	$text = fgets($csock);
+				                  	if($text == "") {
+				                  		unset($this->clients[$pid]);
+				                    	echo "Connection closed\n";
+				                       	$opening = false;
+				                       	fclose($csock);
+				                       	exit(0);
+				                  	}
+				                  	msg_send($this->pidQueue,MSG_TYPE,$pid);
+				                  	msg_send($this->msgQueue,MSG_TYPE,$text);
+				                  	// echo "\r" .$text;
+				          	}
+						}
+					}
+				}
+			} elseif ($pid > 0) {	
+				$this->clients[$pid] = $csock;
+			} 
+		}
 
-    $conOpen = true;    
-    while($conOpen) {    
- 
-        $r = array($csock);
-        $w = NULL;
-        $e = NULL;
-        $t = NULL;
-        if(0 < stream_select($r, $w, $e, $t)) {
-           foreach($r as $i => $fd) {
-              if($fd == $csock) {
-                  $text = fgets($csock);
-                  if($text == "") {
-                       echo "Connection closed by peer\n";
-                       $conOpen = false;
-                       fclose($csock);
-                       break;
-                  }
-                  echo "\r" .$text;  
-               }
-           }
-       }
-    }
-    exit(1);
-  }
+	}
 }
-foreach ($pids as $key => $value) {
-  pcntl_waitpid($value, $status);
+
+$pidQC = ftok(__FILE__,'p');
+$msgQC = ftok(__FILE__,'m');
+$pidQueue = msg_get_queue($pidQC);
+$msgQueue = msg_get_queue($msgQC);
+const MSG_TYPE = 1;
+
+$ssock = stream_socket_server("tcp://127.0.0.1:9501");
+$myThread = new MyThread($ssock,$pidQueue,$msgQueue);
+$myThread->start();
+
+while (1) {
+	msg_receive($pidQueue,MSG_TYPE,$msgType,1024,$pid);
+	msg_receive($msgQueue,MSG_TYPE,$msgType,1024,$msg);
+
+	$clients = $myThread->clients;
+	if ($clients) {
+		foreach ($clients as $key => $client) {
+			if ($pid != $key) {
+				fwrite($client, $msg);
+			}
+		}
+	}
+	usleep(1000);
 }
+fclose($ssock);
+exit(0);
+

@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
+	"bufio"
 )
 var addr string = "127.0.0.1:9501"
 
@@ -20,18 +20,17 @@ func main() {
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	checkError(err)
 
-	_, err = conn.Write([]byte(name + ":Hello Server\r\n\r\n"))
-	checkError(err)
+	defer conn.Close()
 
-	result, err := ioutil.ReadAll(conn)
+	_, err = conn.Write([]byte(name + ":Hello Server\n"))
 	checkError(err)
+	reader := bufio.NewReader(conn)
+
+	result, err := reader.ReadString('\n')
 
 	fmt.Println(string(result))
 
 	os.Exit(0)
-
-
-	
 }
 
 func checkError(err error) {

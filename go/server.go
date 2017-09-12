@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"io/ioutil"
+	"bufio"
 )
 
 func main() {
@@ -16,17 +16,23 @@ func main() {
 	listener, err := net.ListenTCP("tcp4", tcpAddr)
 	checkError(err)
 
+	defer listener.Close()
+
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			continue
 		}
-		result, err := ioutil.ReadAll(conn)
-		if err != nil {
-			conn.Close()
+		reader := bufio.NewReader(conn)
+
+		for {
+			msg, err := reader.ReadString('\n')
+			if err != nil {
+				break;
+			}
+			fmt.Println(string(msg))
+			conn.Write([]byte("hello client\n"))
 		}
-		fmt.Println(string(result))
-		conn.Write([]byte("hello client\r\n\r\n"))
 		conn.Close()
 	}
 

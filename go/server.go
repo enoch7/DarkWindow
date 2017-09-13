@@ -39,8 +39,7 @@ func main() {
 }
 
 func handleConn(conn *net.TCPConn) {
-	// ipAddr := conn.RemoteAddr().String()
-
+	ipAddr := conn.RemoteAddr().String()
 	reader := bufio.NewReader(conn)
 
 	defer conn.Close()
@@ -49,9 +48,12 @@ func handleConn(conn *net.TCPConn) {
 		if err != nil {
 			break
 		}
-		fmt.Println(string(msg))
+		fmt.Printf("%s",string(msg))
 
-		for _,other := range ConnMap {
+		for otherIp,other := range ConnMap {
+			if otherIp == ipAddr {
+				continue
+			}
 			other.Write([]byte(msg))
 		}
 

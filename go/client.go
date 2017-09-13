@@ -8,12 +8,13 @@ import (
 )
 var addr string = "127.0.0.1:9501"
 var disconnect = make(chan bool)
+var name string
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Println("参数错误")
 		os.Exit(1)
 	}
-	name := os.Args[1]
+	name = os.Args[1]
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	checkError(err)
 
@@ -30,6 +31,7 @@ func main() {
 
 	go func () {
 		for {
+			fmt.Printf(name + ":")
 			var msg string
 			fmt.Scanln(&msg)
 
@@ -37,10 +39,13 @@ func main() {
 				break
 			}
 			conn.Write([]byte(name + ":" + msg + "\n"))
-		}	
+		}
+		disconnect <-	true
 	}()
 
 	<-disconnect
+	conn.Write([]byte(name + " left\n"))
+
 	os.Exit(0)
 }
 
@@ -49,10 +54,11 @@ func receiveMessage(conn *net.TCPConn) {
 	for {
 		msg, err := reader.ReadString('\n')
 
-		fmt.Printf(string(msg))
+		fmt.Printf("\r" + string(msg))
 		if err != nil {
 			break
 		}
+		fmt.Printf(name+":")
 	}
 	disconnect <- true
 }

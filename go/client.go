@@ -7,7 +7,7 @@ import (
 	"bufio"
 )
 var addr string = "127.0.0.1:9501"
-
+var disconnect = make(chan bool)
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Println("参数错误")
@@ -17,20 +17,44 @@ func main() {
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	checkError(err)
 
+	
+
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	checkError(err)
 
 	defer conn.Close()
 
-	_, err = conn.Write([]byte(name + ":Hello Server\n"))
-	checkError(err)
-	reader := bufio.NewReader(conn)
+	fmt.Println("connect successfully")
 
-	result, err := reader.ReadString('\n')
+	go receiveMessage(conn)
 
-	fmt.Println(string(result))
+	go func () {
+		for {
+			var msg string
+			fmt.Scanln(&msg)
 
+			if ((msg == "quit") || (msg == "exit")) {
+				break
+			}
+			conn.Write([]byte(name + ":" + msg + "\n"))
+		}	
+	}()
+
+	<-disconnect
 	os.Exit(0)
+}
+
+func receiveMessage(conn *net.TCPConn) {
+	reader := bufio.NewReader(conn)
+	for {
+		msg, err := reader.ReadString('\n')
+
+		fmt.Printf(string(msg))
+		if err != nil {
+			break
+		}
+	}
+	disconnect <- true
 }
 
 func checkError(err error) {

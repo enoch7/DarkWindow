@@ -7,8 +7,11 @@ import (
 	"bufio"
 )
 
+var ConnMap map[string]*net.TCPConn
+
 func main() {
 	addr := "127.0.0.1:9501"
+	ConnMap = make(map[string]*net.TCPConn)
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	checkError(err)
@@ -18,25 +21,41 @@ func main() {
 
 	defer listener.Close()
 
+
 	for {
-		conn, err := listener.Accept()
+		conn, err := listener.AcceptTCP()
 		if err != nil {
 			continue
 		}
-		reader := bufio.NewReader(conn)
 
-		for {
-			msg, err := reader.ReadString('\n')
-			if err != nil {
-				break;
-			}
-			fmt.Println(string(msg))
-			conn.Write([]byte("hello client\n"))
-		}
-		conn.Close()
+		ipAddr := conn.RemoteAddr().String()
+
+		ConnMap[ipAddr] = conn
+
+		go handleConn(conn)
 	}
 
 
+}
+
+func handleConn(conn *net.TCPConn) {
+	// ipAddr := conn.RemoteAddr().String()
+
+	reader := bufio.NewReader(conn)
+
+	defer conn.Close()
+	for {
+		msg, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		fmt.Println(string(msg))
+
+		for _,other := range ConnMap {
+			other.Write([]byte(msg))
+		}
+
+	}
 }
 
 func checkError(err error) {

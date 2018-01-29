@@ -53,8 +53,9 @@ func receiveMessage(conn *net.TCPConn) {
 	reader := bufio.NewReader(conn)
 	for {
 		msg, err := reader.ReadString('\n')
-
-		fmt.Printf("\r" + string(msg))
+		// fmt.Printf("")
+		fmt.Printf("\033[%dA")
+		fmt.Printf( string(msg))
 		if err != nil {
 			break
 		}
